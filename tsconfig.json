@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "outDir": "dist" /* Specify an output folder for all emitted files. */,
+    "rootDir": ".",
+    "sourceMap": true /* Create source map files for emitted JavaScript files. */,
+    "target": "es2016" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "module": "esnext" /* Specify what module code is generated. */,
+    "moduleResolution": "node" /* 模块解析方式，Specify how TypeScript looks up a file from a given module specifier. */,
+    "strict": false,
+    "resolveJsonModule": true /* 解析json模块Enable importing .json files. */,
+    "esModuleInterop": true,
+    "jsx": "preserve" /* jsx不转义Specify what JSX code is generated. */,
+    "lib": ["esnext", "dom"] /* Specify a set of bundled library declaration files that describe the target runtime environment. */,
+    "baseUrl": ".", // 以当前路径为基准进行查找
+    "paths": {
+      // 查找的路径， 引入@vue都去packages下查找
+      "@vue/*": ["packages/*/src"],
+      "./*": ["packages/*/src"]
+    }
+  },
+  "include": ["packages/*/src"]
+}
