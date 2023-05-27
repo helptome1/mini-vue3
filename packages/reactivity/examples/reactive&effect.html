@@ -10,17 +10,30 @@
     <div id="app"></div>
     <script src="../dist/reactivity.global.js"></script>
     <script>
-      const { reactive, effect } = VueReactivity;
+      const { reactive, effect, computed } = VueReactivity;
       let obj = { name: 'hzg', age: 17 };
       const state = reactive(obj);
-
-      // console.log("state", state)
-
       // 1.effect会默认执行一次
       const run = effect(() => {
         console.log('ok')
         app.innerHTML = state.name + '今年' + state.age + '岁' + state.age;
       });
+      
+      const myAge = computed({
+        get() {
+          console.log('computed get');
+          return state.age + 1;
+        },
+        set(val) {
+          console.log('computed set');
+          console.log(val)
+        }
+      })
+      myAge.value
+      myAge.value
+      myAge.value
+      myAge.value = 100
+      myAge.value
       
 
       setTimeout(() => {
@@ -28,10 +41,7 @@
         state.age = 20;
         run.effect.stop()
       }, 3000);
-      setTimeout(() => {
-        // 数据更新后会刷新一次。
-        state.age = 30;
-      }, 6000);
+    
     </script>
   </body>
 </html>

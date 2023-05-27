@@ -1,6 +1,13 @@
 var VueReactivity = (function (exports) {
   'use strict';
 
+  function isObject(value) {
+      return typeof value === 'object' && value !== null;
+  }
+  function isFunction(value) {
+      return typeof value === 'function';
+  }
+
   let effectStack = []; // 目的就是为了保证我们effect执行的时候，可以存储正确的关系。
   let activeEffect; // 当前活跃的effect
   function cleanUpEffect(effect) {
@@ -10,8 +17,9 @@ var VueReactivity = (function (exports) {
       }
   }
   class ReactiveEffect {
-      constructor(fn) {
+      constructor(fn, scheduler) {
           this.fn = fn;
+          this.scheduler = scheduler;
           this.active = true; // this.active = true
           this.deps = []; // 让effect记录依赖的属性。同时也要记录当前属性依赖了哪个effect
           // public fn === this.fn = fn
@@ -27,10 +35,10 @@ var VueReactivity = (function (exports) {
           if (!effectStack.includes(this)) {
               try {
                   effectStack.push((activeEffect = this));
-                  this.fn();
+                  return this.fn(); // 取值，new Proxy会执行get方法
               }
               finally {
-                  effectStack.pop(); //删除最后一个，并把删除后的最后一个当作
+                  effectStack.pop(); //删除最后一个，并把删除后的最后一个当作activeEffect
                   activeEffect = effectStack[effectStack.length - 1];
               }
           }
@@ -43,12 +51,18 @@ var VueReactivity = (function (exports) {
           }
       }
   }
+  /**
+   * 检查是否需要收集依赖
+   * @returns Boolean
+   */
   function isTracking() {
       return activeEffect !== undefined;
   }
+  /**
+   * 2. 依赖收集，把属性和effect对应起来。
+   */
   // {obj: {属性：[effect，effect]}}
   const targetMap = new WeakMap();
-  // 2. 依赖收集，把属性和effect对应起来。
   function track(target, key) {
       // 是否只要取值我就要收集吗？
       if (!isTracking()) {
@@ -61,15 +75,28 @@ var VueReactivity = (function (exports) {
       }
       let dep = depsMap.get(key);
       if (!dep) {
-          depsMap.set(key, (dep = new Set())); // {obj: map{name: set[]}}
+          depsMap.set(key, (dep = new Set())); // {obj: map{name: Set[]}}
       }
+      // 收集effect
+      trackEffects(dep);
+  }
+  /**
+   * 收集effect
+   * @param dep Set
+   */
+  function trackEffects(dep) {
       if (!dep.has(activeEffect)) {
           // 一个属性对应多个effect，一个effect对应多个属性。多对多的关系
-          dep.add(activeEffect); //{obj: map{name: set[effect, effect]}}
+          dep.add(activeEffect); //{obj: map{name: Set[effect, effect]}}
           activeEffect.deps.push(dep);
       }
   }
-  // -------- 触发更新 ------------------
+  /**
+   * 触发更新
+   * @param target 响应对象
+   * @param key 响应对象的属性
+   * @returns
+   */
   function trigger(target, key) {
       const depsMap = targetMap.get(target);
       if (!depsMap)
@@ -82,10 +109,15 @@ var VueReactivity = (function (exports) {
       for (const dep of deps) {
           effects.push(...dep);
       }
-      for (const effect of effects) {
-          console.log("effect", effect);
+      triggerEffects(effects);
+  }
+  function triggerEffects(dep) {
+      for (const effect of dep) {
           // 如果当前effect和要执行的effect是同一个，就不执行了
           if (effect !== activeEffect) {
+              if (effect.scheduler) {
+                  return effect.scheduler(); // 如果有调度器，就让调度器执行
+              }
               effect.run(); // 执行effect
           }
       }
@@ -98,8 +130,47 @@ var VueReactivity = (function (exports) {
       return runner;
   }
 
-  function isObject(value) {
-      return typeof value === 'object' && value !== null;
+  class ComputedRefImpl {
+      constructor(getter, setter) {
+          this.setter = setter;
+          this._dirty = true; // this._dirty = true
+          this.__v_isRef = true; // 用来标识是一个ref属性
+          // 将计算属性包成一个effect
+          this.effect = new ReactiveEffect(getter, () => {
+              if (!this._dirty) {
+                  this._dirty = true;
+                  triggerEffects(this.dep);
+              }
+          });
+      }
+      get value() {
+          if (isTracking()) {
+              trackEffects(this.dep || (this.dep = new Set()));
+          }
+          if (this._dirty) {
+              // 取值时会走get方法
+              this._value = this.effect.run();
+              this._dirty = false;
+          }
+          return this._value;
+      }
+      set value(newValue) {
+          this.setter(newValue); // 如果修改值，就出发自己写的set方法
+      }
+  }
+  function computed(getterOrOptions) {
+      const onlyGetter = isFunction(getterOrOptions);
+      let getter;
+      let setter;
+      if (onlyGetter) {
+          getter = getterOrOptions;
+          setter = () => { };
+      }
+      else {
+          getter = getterOrOptions.get;
+          setter = getterOrOptions.set;
+      }
+      return new ComputedRefImpl(getter, setter);
   }
 
   const mutableHandler = {
@@ -154,6 +225,7 @@ var VueReactivity = (function (exports) {
   // export function shallowReadonly() {
   // }
 
+  exports.computed = computed;
   exports.effect = effect;
   exports.reactive = reactive;
 

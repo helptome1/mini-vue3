@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="../dist/reactivity.global.js"></script>
+    <script>
+      const { reactive, effect, computed } = VueReactivity;
+      let obj = { name: 'hzg', age: 17 };
+      const state = reactive(obj);
+      // 1.effect会默认执行一次
+
+      
+      const myAge = computed({
+        get() {
+          console.log('computed get');
+          return state.age + 1;
+        },
+        set(val) {
+          console.log('computed set');
+          console.log(val)
+        }
+      })
+      effect(()=>{
+        console.log(myAge.value);
+        console.log(myAge.value);
+        console.log(myAge.value);
+      })
+      setTimeout(() => {
+        // 数据更新后会刷新一次。
+        state.age = 20;
+        console.log(myAge.value)
+      }, 4000);
+    </script>
+  </body>
+</html>
