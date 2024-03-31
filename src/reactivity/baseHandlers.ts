@@ -1,9 +1,11 @@
+import { extend, isObject } from '../shared'
 import { track, trigger } from './effect'
-import { ReactiveFlags } from './reactive'
+import { ReactiveFlags, reactive, readonly } from './reactive'
 
 const get = createGetter()
 const readonlyGet = createGetter(true)
-function createGetter(isReadonly = false) {
+const shallowReadonlyGet = createGetter(true, true)
+function createGetter(isReadonly = false, shllow = false) {
   return function get(target, key, receiver) {
     if (key === ReactiveFlags.IS_REACTIVE) {
       return !isReadonly
@@ -12,6 +14,15 @@ function createGetter(isReadonly = false) {
     }
     // 这里有个知识点，为什么要使用Reflect？
     const res = Reflect.get(target, key, receiver)
+
+    // # 如果是shallow不进行深度嵌套
+    if (shllow) return res
+    // # 如果是对象，进行深度嵌套
+
+    if (isObject(res)) {
+      return isReadonly ? readonly(res) : reactive(res)
+    }
+
     if (!isReadonly) {
       // TODO 依赖收集
       track(target, key)
@@ -41,3 +52,7 @@ export const readonlyHandlers = {
     return true
   }
 }
+
+export const shallowReadonlyHandlers = extend({}, readonlyHandlers, {
+  get: shallowReadonlyGet
+})
