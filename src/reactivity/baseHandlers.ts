@@ -5,8 +5,6 @@ const get = createGetter()
 const readonlyGet = createGetter(true)
 function createGetter(isReadonly = false) {
   return function get(target, key, receiver) {
-    console.log(key)
-
     if (key === ReactiveFlags.IS_REACTIVE) {
       return !isReadonly
     } else if (key === ReactiveFlags.IS_READONLY) {
