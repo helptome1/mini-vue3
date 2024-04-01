@@ -80,9 +80,10 @@ export function isTracking() {
 export function trigger(target, key) {
   const depsMap = targetMap.get(target)
   const deps = depsMap.get(key)
+  triggerEffects(deps)
 }
 
-export function triggerEffect(deps) {
+export function triggerEffects(deps) {
   for (let effect of deps) {
     if (effect.scheduler) {
       effect.scheduler()
