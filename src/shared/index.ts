@@ -7,3 +7,4 @@ export const isObject = (val) => {
 export const hasChange = (value, newValue) => {
   return !Object.is(value, newValue)
 }
+

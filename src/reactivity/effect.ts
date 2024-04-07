@@ -3,7 +3,7 @@ import { extend } from '../shared'
 let activeEffect
 // 定义一个全局变量判断当前依赖是否需要收集track
 let shouldTrack
-class ReactiveEffect {
+export class ReactiveEffect {
   private _fn: any
   deps = []
   active = true
