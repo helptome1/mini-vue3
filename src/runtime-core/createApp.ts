@@ -9,7 +9,7 @@ export function createApp(rootComponent) {
       // component -> vnode
       const vnode = createVNode(rootComponent)
 
-      render(vnode, rootComponent)
+      render(vnode, rootContainer)
     }
   }
 }

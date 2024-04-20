@@ -1,3 +1,4 @@
+import { isObject } from '../shared'
 import { createComponentInstance, setupComponent } from './component'
 
 export function render(vnode, container) {
@@ -7,7 +8,33 @@ export function render(vnode, container) {
 
 function patch(vnode, container) {
   // 处理组件
-  processComponent(vnode, container)
+  // TODO 判断vnode是不是一个element
+  // 是element就走element的逻辑
+  // 是component就走component的逻辑
+  if (typeof vnode.type === 'string') {
+    processElement(vnode, container)
+  } else if (isObject(vnode.type)) {
+    processComponent(vnode, container)
+  }
+}
+
+function processElement(vnode, container) {
+  // init -> mount
+  mounteElement(vnode, container)
+}
+
+function mounteElement(vnode, container) {
+  const el = document.createElement(vnode.type)
+  const { children, props } = vnode
+  // 处理children
+  el.textContent = children
+  // props
+  for (let key in props) {
+    const value = props[key]
+    el.setAttribute(key, value)
+  }
+
+  container.append(el)
 }
 
 function processComponent(vnode, container) {
@@ -28,5 +55,6 @@ function setupRenderEffect(instance, container) {
   const subTree = instance.render()
   // vnode -> patch
   // vnode -> element -> mount
+  // 这里patch的subTree是一个虚拟节点。
   patch(subTree, container)
 }
